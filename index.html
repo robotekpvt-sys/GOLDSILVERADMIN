@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>⚙️ Admin Panel - GoldSilver</title>
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, 'Segoe UI', sans-serif;
+            background: #0a0e1a;
+            color: #f3f4f6;
+            padding: 16px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            margin-bottom: 20px;
+        }
+        
+        .header h1 {
+            font-size: 20px;
+            color: #fbbf24;
+        }
+        
+        .header .badge {
+            background: rgba(52, 211, 153, 0.1);
+            color: #34d399;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+        
+        .card {
+            background: #111827;
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 16px;
+            border: 1px solid rgba(255,255,255,0.06);
+        }
+        
+        .card h3 {
+            color: #fbbf24;
+            font-size: 14px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .card h3 .count {
+            background: rgba(251, 191, 36, 0.15);
+            color: #fbbf24;
+            padding: 1px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+        }
+        
+        .upi-display {
+            background: rgba(251, 191, 36, 0.06);
+            border: 1px solid rgba(251, 191, 36, 0.08);
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+            font-family: monospace;
+            font-size: 16px;
+            color: #fbbf24;
+            margin-bottom: 10px;
+        }
+        
+        .upi-input-group {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .upi-input-group input {
+            flex: 1;
+            padding: 10px 14px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.06);
+            background: rgba(0,0,0,0.3);
+            color: #fff;
+            font-size: 14px;
+            outline: none;
+        }
+        
+        .upi-input-group input:focus {
+            border-color: #fbbf24;
+        }
+        
+        .upi-input-group button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 10px;
+            background: #fbbf24;
+            color: #1a1200;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .upi-input-group button:active {
+            transform: scale(0.95);
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+        }
+        
+        .stat-box {
+            background: rgba(0,0,0,0.2);
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+        }
+        
+        .stat-box .number {
+            font-size: 20px;
+            font-weight: 700;
+            color: #fbbf24;
+        }
+        
+        .stat-box .label {
+            font-size: 10px;
+            color: #9ca3af;
+            margin-top: 2px;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        
+        .tab-btn {
+            padding: 8px 16px;
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 10px;
+            background: transparent;
+            color: #9ca3af;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .tab-btn.active {
+            background: #fbbf24;
+            color: #1a1200;
+            border-color: #fbbf24;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 10px;
+            margin-bottom: 6px;
+        }
+        
+        .list-item .info .name {
+            font-size: 13px;
+            font-weight: 600;
+        }
+        
+        .list-item .info .detail {
+            font-size: 11px;
+            color: #9ca3af;
+        }
+        
+        .list-item .actions {
+            display: flex;
+            gap: 4px;
+        }
+        
+        .list-item .actions button {
+            padding: 4px 10px;
+            border: none;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .list-item .actions button:active {
+            transform: scale(0.95);
+        }
+        
+        .list-item .actions .approve {
+            background: #34d399;
+            color: #000;
+        }
+        
+        .list-item .actions .reject {
+            background: #f87171;
+            color: #fff;
+        }
+        
+        .list-item .status {
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+        
+        .list-item .status.pending {
+            background: rgba(251, 191, 36, 0.15);
+            color: #fbbf24;
+        }
+        
+        .list-item .status.approved {
+            background: rgba(52, 211, 153, 0.15);
+            color: #34d399;
+        }
+        
+        .list-item .status.rejected {
+            background: rgba(248, 113, 113, 0.15);
+            color: #f87171;
+        }
+        
+        .empty {
+            text-align: center;
+            color: #9ca3af;
+            padding: 20px;
+            font-size: 13px;
+        }
+        
+        .btn-logout {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            background: #f87171;
+            color: #fff;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-logout:active {
+            transform: scale(0.97);
+        }
+        
+        .loading {
+            text-align: center;
+            color: #9ca3af;
+            padding: 20px;
+            font-size: 13px;
+        }
+        
+        .admin-login {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            justify-content: center;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        
+        .admin-login h2 {
+            text-align: center;
+            color: #fbbf24;
+            margin-bottom: 24px;
+        }
+        
+        .admin-login input {
+            width: 100%;
+            padding: 14px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.06);
+            background: rgba(0,0,0,0.3);
+            color: #fff;
+            font-size: 15px;
+            margin-bottom: 12px;
+            outline: none;
+        }
+        
+        .admin-login input:focus {
+            border-color: #fbbf24;
+        }
+        
+        .admin-login button {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            background: #fbbf24;
+            color: #1a1200;
+            font-weight: 700;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .admin-login button:active {
+            transform: scale(0.97);
+        }
+        
+        .admin-login .error {
+            color: #f87171;
+            text-align: center;
+            font-size: 13px;
+            margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container" id="appContainer">
+    <!-- Login Screen -->
+    <div id="loginScreen" class="admin-login">
+        <h2>⚙️ Admin Panel</h2>
+        <input type="email" id="adminEmail" placeholder="Admin Email" autocomplete="email">
+        <input type="password" id="adminPassword" placeholder="Password" autocomplete="current-password">
+        <button onclick="adminLogin()">🔐 Login</button>
+        <div class="error" id="loginError"></div>
+    </div>
+    
+    <!-- Dashboard -->
+    <div id="dashboardScreen" style="display:none;">
+        <div class="header">
+            <h1>⚙️ Admin Panel</h1>
+            <span class="badge">● Live</span>
+        </div>
+        
+        <!-- Stats -->
+        <div class="card">
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="number" id="statUsers">0</div>
+                    <div class="label">👥 Users</div>
+                </div>
+                <div class="stat-box">
+                    <div class="number" id="statDeposits">0</div>
+                    <div class="label">💰 Deposits</div>
+                </div>
+                <div class="stat-box">
+                    <div class="number" id="statWithdraws">0</div>
+                    <div class="label">💸 Withdraws</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- UPI Settings -->
+        <div class="card">
+            <h3>📱 UPI Settings</h3>
+            <div class="upi-display" id="currentUpi">Loading...</div>
+            <div class="upi-input-group">
+                <input type="text" id="upiInput" placeholder="New UPI ID (e.g., business@paytm)">
+                <button onclick="updateUPI()">Update</button>
+            </div>
+        </div>
+        
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('deposits')">💰 Deposits</button>
+            <button class="tab-btn" onclick="switchTab('withdraws')">💸 Withdraws</button>
+            <button class="tab-btn" onclick="switchTab('users')">👥 Users</button>
+        </div>
+        
+        <!-- Deposits -->
+        <div id="depositsTab" class="tab-content active">
+            <div class="card">
+                <h3>Pending Deposits <span class="count" id="depositCount">0</span></h3>
+                <div id="depositList">
+                    <div class="loading">Loading...</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Withdraws -->
+        <div id="withdrawsTab" class="tab-content">
+            <div class="card">
+                <h3>Pending Withdrawals <span class="count" id="withdrawCount">0</span></h3>
+                <div id="withdrawList">
+                    <div class="loading">Loading...</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Users -->
+        <div id="usersTab" class="tab-content">
+            <div class="card">
+                <h3>All Users <span class="count" id="userCount">0</span></h3>
+                <div id="userList">
+                    <div class="loading">Loading...</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Logout -->
+        <button class="btn-logout" onclick="logoutAdmin()">🚪 Logout</button>
+    </div>
+</div>
+
+<script>
+// ============================================================
+// 🔥 FIREBASE CONFIG
+// ============================================================
+const firebaseConfig = {
+    apiKey: "AIzaSyCYtL-DqPjiUdQn6s8Mp49CEQLVqNh_aaY",
+    authDomain: "silvergold-dbe2f.firebaseapp.com",
+    databaseURL: "https://silvergold-dbe2f-default-rtdb.firebaseio.com",
+    projectId: "silvergold-dbe2f",
+    storageBucket: "silvergold-dbe2f.firebasestorage.app",
+    messagingSenderId: "14714045042",
+    appId: "1:14714045042:web:e1d95d8fdaff21606378eb"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+const rtdb = firebase.database();
+
+// ============================================================
+// 🧠 STATE
+// ============================================================
+let currentUpi = 'pay.silvergold@ybl';
+let depositsUnsubscribe = null;
+let withdrawsUnsubscribe = null;
+let usersUnsubscribe = null;
+
+// ============================================================
+// 🔐 ADMIN LOGIN
+// ============================================================
+function adminLogin() {
+    const email = document.getElementById('adminEmail').value.trim();
+    const password = document.getElementById('adminPassword').value.trim();
+    const errorEl = document.getElementById('loginError');
+    
+    if (!email || !password) {
+        errorEl.textContent = 'Please enter email and password';
+        return;
+    }
+    
+    errorEl.textContent = '';
+    
+    auth.signInWithEmailAndPassword(email, password)
+        .then(userCredential => {
+            return db.collection('users').doc(userCredential.user.uid).get();
+        })
+        .then(snap => {
+            if (snap.exists && snap.data().role === 'admin') {
+                document.getElementById('loginScreen').style.display = 'none';
+                document.getElementById('dashboardScreen').style.display = 'block';
+                loadAdminData();
+            } else {
+                errorEl.textContent = '⛔ You are not an admin';
+                auth.signOut();
+            }
+        })
+        .catch(err => {
+            errorEl.textContent = '❌ ' + err.message;
+        });
+}
+
+// ============================================================
+// 🚀 LOAD ADMIN DATA
+// ============================================================
+function loadAdminData() {
+    // Load UPI
+    rtdb.ref('system/config/merchantUpi').on('value', snap => {
+        currentUpi = snap.val() || 'pay.silvergold@ybl';
+        document.getElementById('currentUpi').textContent = currentUpi;
+    });
+    
+    // Load Deposits
+    loadDeposits();
+    
+    // Load Withdraws
+    loadWithdraws();
+    
+    // Load Users
+    loadUsers();
+}
+
+// ============================================================
+// 📱 UPI UPDATE
+// ============================================================
+function updateUPI() {
+    const newUpi = document.getElementById('upiInput').value.trim();
+    if (!newUpi || !newUpi.includes('@')) {
+        alert('Please enter a valid UPI ID');
+        return;
+    }
+    
+    if (!confirm(`Change UPI from "${currentUpi}" to "${newUpi}"?`)) return;
+    
+    rtdb.ref('system/config/merchantUpi').set(newUpi)
+        .then(() => {
+            alert('✅ UPI updated successfully!');
+            document.getElementById('upiInput').value = '';
+            currentUpi = newUpi;
+        })
+        .catch(err => alert('❌ Error: ' + err.message));
+}
+
+// ============================================================
+// 💰 DEPOSITS
+// ============================================================
+function loadDeposits() {
+    if (depositsUnsubscribe) depositsUnsubscribe();
+    
+    depositsUnsubscribe = db.collection('transactions')
+        .where('type', '==', 'DEPOSIT')
+        .where('status', '==', 'pending')
+        .orderBy('timestamp', 'desc')
+        .onSnapshot(snapshot => {
+            const container = document.getElementById('depositList');
+            const countEl = document.getElementById('depositCount');
+            const count = snapshot.size;
+            countEl.textContent = count;
+            document.getElementById('statDeposits').textContent = count;
+            
+            if (snapshot.empty) {
+                container.innerHTML = '<div class="empty">No pending deposits</div>';
+                return;
+            }
+            
+            let html = '';
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                const date = new Date(data.timestamp).toLocaleDateString('en-IN');
+                html += `
+                    <div class="list-item">
+                        <div class="info">
+                            <div class="name">₹${data.amount}</div>
+                            <div class="detail">${data.email} • ${date}</div>
+                            <div class="detail">UTR: ${data.utr || 'N/A'}</div>
+                        </div>
+                        <div class="actions">
+                            <button class="approve" onclick="approveDeposit('${doc.id}')">✅</button>
+                            <button class="reject" onclick="rejectDeposit('${doc.id}')">❌</button>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        });
+}
+
+function approveDeposit(docId) {
+    if (!confirm('Approve this deposit?')) return;
+    
+    db.collection('transactions').doc(docId).get().then(snap => {
+        const data = snap.data();
+        if (data && data.userId && data.amount) {
+            return db.collection('users').doc(data.userId).update({
+                balance: firebase.firestore.FieldValue.increment(data.amount)
+            }).then(() => {
+                return db.collection('transactions').doc(docId).update({
+                    status: 'approved',
+                    processedAt: Date.now()
+                });
+            });
+        }
+    }).then(() => {
+        alert('✅ Deposit approved!');
+    }).catch(err => alert('❌ Error: ' + err.message));
+}
+
+function rejectDeposit(docId) {
+    if (!confirm('Reject this deposit?')) return;
+    
+    db.collection('transactions').doc(docId).update({
+        status: 'rejected',
+        processedAt: Date.now()
+    }).then(() => {
+        alert('❌ Deposit rejected.');
+    }).catch(err => alert('❌ Error: ' + err.message));
+}
+
+// ============================================================
+// 💸 WITHDRAWS
+// ============================================================
+function loadWithdraws() {
+    if (withdrawsUnsubscribe) withdrawsUnsubscribe();
+    
+    withdrawsUnsubscribe = db.collection('transactions')
+        .where('type', '==', 'WITHDRAW')
+        .where('status', '==', 'pending')
+        .orderBy('timestamp', 'desc')
+        .onSnapshot(snapshot => {
+            const container = document.getElementById('withdrawList');
+            const countEl = document.getElementById('withdrawCount');
+            const count = snapshot.size;
+            countEl.textContent = count;
+            document.getElementById('statWithdraws').textContent = count;
+            
+            if (snapshot.empty) {
+                container.innerHTML = '<div class="empty">No pending withdrawals</div>';
+                return;
+            }
+            
+            let html = '';
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                const date = new Date(data.timestamp).toLocaleDateString('en-IN');
+                html += `
+                    <div class="list-item">
+                        <div class="info">
+                            <div class="name">💸 ₹${data.amount}</div>
+                            <div class="detail">${data.email} • ${date}</div>
+                            <div class="detail">UPI: ${data.upiId || 'N/A'}</div>
+                        </div>
+                        <div class="actions">
+                            <button class="approve" onclick="approveWithdraw('${doc.id}')">✅</button>
+                            <button class="reject" onclick="rejectWithdraw('${doc.id}')">❌</button>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        });
+}
+
+function approveWithdraw(docId) {
+    if (!confirm('Approve this withdrawal?')) return;
+    
+    db.collection('transactions').doc(docId).update({
+        status: 'approved',
+        processedAt: Date.now()
+    }).then(() => {
+        alert('✅ Withdrawal approved!');
+    }).catch(err => alert('❌ Error: ' + err.message));
+}
+
+function rejectWithdraw(docId) {
+    if (!confirm('Reject this withdrawal? Balance will be refunded.')) return;
+    
+    db.collection('transactions').doc(docId).get().then(snap => {
+        const data = snap.data();
+        if (data && data.userId && data.amount) {
+            return db.collection('users').doc(data.userId).update({
+                balance: firebase.firestore.FieldValue.increment(data.amount)
+            }).then(() => {
+                return db.collection('transactions').doc(docId).update({
+                    status: 'rejected',
+                    processedAt: Date.now()
+                });
+            });
+        }
+    }).then(() => {
+        alert('❌ Withdrawal rejected. Balance refunded.');
+    }).catch(err => alert('❌ Error: ' + err.message));
+}
+
+// ============================================================
+// 👥 USERS
+// ============================================================
+function loadUsers() {
+    if (usersUnsubscribe) usersUnsubscribe();
+    
+    usersUnsubscribe = db.collection('users')
+        .orderBy('createdAt', 'desc')
+        .onSnapshot(snapshot => {
+            const container = document.getElementById('userList');
+            const count = snapshot.size;
+            document.getElementById('userCount').textContent = count;
+            document.getElementById('statUsers').textContent = count;
+            
+            if (snapshot.empty) {
+                container.innerHTML = '<div class="empty">No users found</div>';
+                return;
+            }
+            
+            let html = '';
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                html += `
+                    <div class="list-item">
+                        <div class="info">
+                            <div class="name">👤 ${data.name || 'User'}</div>
+                            <div class="detail">${data.email} • ₹${data.balance || 0}</div>
+                            <div class="detail">Bets: ${data.totalBets || 0} • Won: ₹${data.totalWon || 0}</div>
+                        </div>
+                        <div>
+                            <span class="status ${data.isBanned ? 'rejected' : 'approved'}">
+                                ${data.isBanned ? '🚫 Banned' : '✅ Active'}
+                            </span>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        });
+}
+
+// ============================================================
+// 🧭 TABS
+// ============================================================
+function switchTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    
+    if (tab === 'deposits') {
+        document.querySelectorAll('.tab-btn')[0].classList.add('active');
+        document.getElementById('depositsTab').classList.add('active');
+    } else if (tab === 'withdraws') {
+        document.querySelectorAll('.tab-btn')[1].classList.add('active');
+        document.getElementById('withdrawsTab').classList.add('active');
+    } else if (tab === 'users') {
+        document.querySelectorAll('.tab-btn')[2].classList.add('active');
+        document.getElementById('usersTab').classList.add('active');
+    }
+}
+
+// ============================================================
+// 🚪 LOGOUT
+// ============================================================
+function logoutAdmin() {
+    if (!confirm('Are you sure you want to logout?')) return;
+    
+    if (depositsUnsubscribe) depositsUnsubscribe();
+    if (withdrawsUnsubscribe) withdrawsUnsubscribe();
+    if (usersUnsubscribe) usersUnsubscribe();
+    
+    auth.signOut().then(() => {
+        document.getElementById('dashboardScreen').style.display = 'none';
+        document.getElementById('loginScreen').style.display = 'flex';
+        document.getElementById('adminEmail').value = '';
+        document.getElementById('adminPassword').value = '';
+        document.getElementById('loginError').textContent = '';
+    });
+}
+
+// ============================================================
+// 🔐 AUTH STATE
+// ============================================================
+auth.onAuthStateChanged(user => {
+    if (user) {
+        db.collection('users').doc(user.uid).get().then(snap => {
+            if (snap.exists && snap.data().role === 'admin') {
+                document.getElementById('loginScreen').style.display = 'none';
+                document.getElementById('dashboardScreen').style.display = 'block';
+                loadAdminData();
+            } else {
+                auth.signOut();
+            }
+        });
+    }
+});
+
+console.log('⚙️ Admin Panel loaded.');
+</script>
+</body>
+</html>
