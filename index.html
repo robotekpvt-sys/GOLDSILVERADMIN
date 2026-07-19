@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>⚙️ Admin Panel - GoldSilver</title>
+    <title>⚙️ Advanced Admin Panel</title>
     
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -12,11 +12,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         
         body {
             font-family: -apple-system, 'Segoe UI', sans-serif;
@@ -26,10 +22,7 @@
             min-height: 100vh;
         }
         
-        .container {
-            max-width: 500px;
-            margin: 0 auto;
-        }
+        .container { max-width: 500px; margin: 0 auto; }
         
         .header {
             display: flex;
@@ -37,22 +30,11 @@
             align-items: center;
             padding: 16px 0;
             border-bottom: 1px solid rgba(255,255,255,0.06);
-            margin-bottom: 20px;
+            margin-bottom: 16px;
         }
         
-        .header h1 {
-            font-size: 20px;
-            color: #fbbf24;
-        }
-        
-        .header .badge {
-            background: rgba(52, 211, 153, 0.1);
-            color: #34d399;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 10px;
-            font-weight: 600;
-        }
+        .header h1 { font-size: 20px; color: #fbbf24; }
+        .header .badge { background: rgba(52, 211, 153, 0.1); color: #34d399; padding: 4px 12px; border-radius: 20px; font-size: 10px; font-weight: 600; }
         
         .card {
             background: #111827;
@@ -78,6 +60,100 @@
             border-radius: 12px;
             font-size: 11px;
         }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+        }
+        
+        .stat-box {
+            background: rgba(0,0,0,0.2);
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+        }
+        
+        .stat-box .number { font-size: 20px; font-weight: 700; color: #fbbf24; }
+        .stat-box .label { font-size: 10px; color: #9ca3af; margin-top: 2px; }
+        
+        .tabs {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        
+        .tab-btn {
+            padding: 8px 14px;
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 10px;
+            background: transparent;
+            color: #9ca3af;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .tab-btn.active {
+            background: #fbbf24;
+            color: #1a1200;
+            border-color: #fbbf24;
+        }
+        
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        .list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 10px;
+            margin-bottom: 6px;
+        }
+        
+        .list-item .info .name { font-size: 13px; font-weight: 600; }
+        .list-item .info .detail { font-size: 11px; color: #9ca3af; }
+        .list-item .info .small { font-size: 10px; color: #6b7c96; }
+        
+        .list-item .actions { display: flex; gap: 4px; flex-wrap: wrap; }
+        
+        .list-item .actions button {
+            padding: 4px 10px;
+            border: none;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .list-item .actions button:active { transform: scale(0.95); }
+        .list-item .actions .approve { background: #34d399; color: #000; }
+        .list-item .actions .reject { background: #f87171; color: #fff; }
+        .list-item .actions .gold { background: #fbbf24; color: #000; }
+        .list-item .actions .silver { background: #d1d5db; color: #000; }
+        .list-item .actions .ban { background: #ef4444; color: #fff; }
+        .list-item .actions .unban { background: #34d399; color: #000; }
+        .list-item .actions .edit { background: #60a5fa; color: #000; }
+        
+        .list-item .status {
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+        
+        .list-item .status.active { background: rgba(52, 211, 153, 0.15); color: #34d399; }
+        .list-item .status.banned { background: rgba(248, 113, 113, 0.15); color: #f87171; }
+        .list-item .status.pending { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
+        .list-item .status.completed { background: rgba(52, 211, 153, 0.15); color: #34d399; }
+        
+        .empty { text-align: center; color: #9ca3af; padding: 20px; font-size: 13px; }
+        .loading { text-align: center; color: #9ca3af; padding: 20px; font-size: 13px; }
         
         .upi-display {
             background: rgba(251, 191, 36, 0.06);
@@ -107,9 +183,7 @@
             outline: none;
         }
         
-        .upi-input-group input:focus {
-            border-color: #fbbf24;
-        }
+        .upi-input-group input:focus { border-color: #fbbf24; }
         
         .upi-input-group button {
             padding: 10px 20px;
@@ -122,145 +196,7 @@
             transition: all 0.3s ease;
         }
         
-        .upi-input-group button:active {
-            transform: scale(0.95);
-        }
-        
-        .stats-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 8px;
-        }
-        
-        .stat-box {
-            background: rgba(0,0,0,0.2);
-            border-radius: 10px;
-            padding: 12px;
-            text-align: center;
-        }
-        
-        .stat-box .number {
-            font-size: 20px;
-            font-weight: 700;
-            color: #fbbf24;
-        }
-        
-        .stat-box .label {
-            font-size: 10px;
-            color: #9ca3af;
-            margin-top: 2px;
-        }
-        
-        .tabs {
-            display: flex;
-            gap: 6px;
-            margin-bottom: 12px;
-            flex-wrap: wrap;
-        }
-        
-        .tab-btn {
-            padding: 8px 16px;
-            border: 1px solid rgba(255,255,255,0.06);
-            border-radius: 10px;
-            background: transparent;
-            color: #9ca3af;
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        
-        .tab-btn.active {
-            background: #fbbf24;
-            color: #1a1200;
-            border-color: #fbbf24;
-        }
-        
-        .tab-content {
-            display: none;
-        }
-        
-        .tab-content.active {
-            display: block;
-        }
-        
-        .list-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 12px;
-            background: rgba(0,0,0,0.2);
-            border-radius: 10px;
-            margin-bottom: 6px;
-        }
-        
-        .list-item .info .name {
-            font-size: 13px;
-            font-weight: 600;
-        }
-        
-        .list-item .info .detail {
-            font-size: 11px;
-            color: #9ca3af;
-        }
-        
-        .list-item .actions {
-            display: flex;
-            gap: 4px;
-        }
-        
-        .list-item .actions button {
-            padding: 4px 10px;
-            border: none;
-            border-radius: 6px;
-            font-size: 11px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        
-        .list-item .actions button:active {
-            transform: scale(0.95);
-        }
-        
-        .list-item .actions .approve {
-            background: #34d399;
-            color: #000;
-        }
-        
-        .list-item .actions .reject {
-            background: #f87171;
-            color: #fff;
-        }
-        
-        .list-item .status {
-            padding: 2px 10px;
-            border-radius: 12px;
-            font-size: 10px;
-            font-weight: 600;
-        }
-        
-        .list-item .status.pending {
-            background: rgba(251, 191, 36, 0.15);
-            color: #fbbf24;
-        }
-        
-        .list-item .status.approved {
-            background: rgba(52, 211, 153, 0.15);
-            color: #34d399;
-        }
-        
-        .list-item .status.rejected {
-            background: rgba(248, 113, 113, 0.15);
-            color: #f87171;
-        }
-        
-        .empty {
-            text-align: center;
-            color: #9ca3af;
-            padding: 20px;
-            font-size: 13px;
-        }
+        .upi-input-group button:active { transform: scale(0.95); }
         
         .btn-logout {
             width: 100%;
@@ -274,16 +210,67 @@
             transition: all 0.3s ease;
         }
         
-        .btn-logout:active {
-            transform: scale(0.97);
+        .btn-logout:active { transform: scale(0.97); }
+        
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
         }
         
-        .loading {
-            text-align: center;
-            color: #9ca3af;
-            padding: 20px;
-            font-size: 13px;
+        .modal-overlay.show { display: flex; }
+        
+        .modal-content {
+            background: #111827;
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 400px;
+            width: 100%;
+            border: 1px solid rgba(255,255,255,0.06);
         }
+        
+        .modal-content h3 { color: #fbbf24; margin-bottom: 12px; }
+        .modal-content input {
+            width: 100%;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.06);
+            background: rgba(0,0,0,0.3);
+            color: #fff;
+            font-size: 14px;
+            margin-bottom: 10px;
+            outline: none;
+        }
+        
+        .modal-content input:focus { border-color: #fbbf24; }
+        
+        .modal-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .modal-actions button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .modal-actions button:active { transform: scale(0.95); }
+        .modal-actions .save { background: #fbbf24; color: #1a1200; }
+        .modal-actions .cancel { background: rgba(255,255,255,0.05); color: #9ca3af; }
         
         .login-container {
             display: flex;
@@ -295,21 +282,9 @@
             padding: 20px;
         }
         
-        .login-container .logo {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        
-        .login-container .logo h1 {
-            font-size: 28px;
-            font-weight: 800;
-            color: #fbbf24;
-        }
-        
-        .login-container .logo p {
-            color: #9ca3af;
-            font-size: 13px;
-        }
+        .login-container .logo { text-align: center; margin-bottom: 30px; }
+        .login-container .logo h1 { font-size: 28px; font-weight: 800; color: #fbbf24; }
+        .login-container .logo p { color: #9ca3af; font-size: 13px; }
         
         .login-container input {
             width: 100%;
@@ -323,9 +298,7 @@
             outline: none;
         }
         
-        .login-container input:focus {
-            border-color: #fbbf24;
-        }
+        .login-container input:focus { border-color: #fbbf24; }
         
         .login-container .login-btn {
             width: 100%;
@@ -340,24 +313,28 @@
             transition: all 0.3s ease;
         }
         
-        .login-container .login-btn:active {
-            transform: scale(0.97);
+        .login-container .login-btn:active { transform: scale(0.97); }
+        .login-container .error { color: #f87171; text-align: center; font-size: 13px; margin-top: 8px; min-height: 20px; }
+        .login-container .info { color: #9ca3af; text-align: center; font-size: 12px; margin-top: 16px; }
+        
+        .bet-choice {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 700;
         }
         
-        .login-container .error {
-            color: #f87171;
-            text-align: center;
-            font-size: 13px;
-            margin-top: 8px;
-            min-height: 20px;
+        .bet-choice.gold { background: rgba(251, 191, 36, 0.2); color: #fbbf24; }
+        .bet-choice.silver { background: rgba(209, 213, 219, 0.2); color: #d1d5db; }
+        
+        .scrollable {
+            max-height: 350px;
+            overflow-y: auto;
         }
         
-        .login-container .info {
-            color: #9ca3af;
-            text-align: center;
-            font-size: 12px;
-            margin-top: 16px;
-        }
+        .scrollable::-webkit-scrollbar { width: 3px; }
+        .scrollable::-webkit-scrollbar-thumb { background: #fbbf24; border-radius: 4px; }
     </style>
 </head>
 <body>
@@ -366,21 +343,20 @@
 <div id="loginScreen" class="login-container">
     <div class="logo">
         <h1>⚙️ Admin Panel</h1>
-        <p>GoldSilver Management</p>
+        <p>GoldSilver Advanced Management</p>
     </div>
-    
-    <input type="email" id="adminEmail" placeholder="Admin Email" autocomplete="email">
-    <input type="password" id="adminPassword" placeholder="Password" autocomplete="current-password">
+    <input type="email" id="adminEmail" placeholder="Admin Email">
+    <input type="password" id="adminPassword" placeholder="Password">
     <button class="login-btn" onclick="adminLogin()">🔐 Login</button>
     <div class="error" id="loginError"></div>
-    <div class="info">🔒 Secure Admin Access Only</div>
+    <div class="info">🔒 Full Control Admin Access</div>
 </div>
 
 <!-- ===== DASHBOARD ===== -->
 <div id="dashboardScreen" style="display:none;">
     <div class="container">
         <div class="header">
-            <h1>⚙️ Admin Panel</h1>
+            <h1>⚙️ Advanced Admin</h1>
             <span class="badge">● Live</span>
         </div>
         
@@ -392,12 +368,12 @@
                     <div class="label">👥 Users</div>
                 </div>
                 <div class="stat-box">
-                    <div class="number" id="statDeposits">0</div>
-                    <div class="label">💰 Deposits</div>
+                    <div class="number" id="statBets">0</div>
+                    <div class="label">🎯 Live Bets</div>
                 </div>
                 <div class="stat-box">
-                    <div class="number" id="statWithdraws">0</div>
-                    <div class="label">💸 Withdraws</div>
+                    <div class="number" id="statDeposits">0</div>
+                    <div class="label">💰 Pending</div>
                 </div>
             </div>
         </div>
@@ -414,36 +390,47 @@
         
         <!-- Tabs -->
         <div class="tabs">
-            <button class="tab-btn active" onclick="switchTab('deposits')">💰 Deposits</button>
+            <button class="tab-btn active" onclick="switchTab('livebets')">🎯 Live Bets</button>
+            <button class="tab-btn" onclick="switchTab('deposits')">💰 Deposits</button>
             <button class="tab-btn" onclick="switchTab('withdraws')">💸 Withdraws</button>
             <button class="tab-btn" onclick="switchTab('users')">👥 Users</button>
         </div>
         
-        <!-- Deposits -->
-        <div id="depositsTab" class="tab-content active">
+        <!-- ===== LIVE BETS TAB ===== -->
+        <div id="livebetsTab" class="tab-content active">
             <div class="card">
-                <h3>Pending Deposits <span class="count" id="depositCount">0</span></h3>
-                <div id="depositList">
+                <h3>🎯 Live Betting <span class="count" id="betCount">0</span></h3>
+                <div class="scrollable" id="betList">
+                    <div class="loading">Loading live bets...</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- ===== DEPOSITS TAB ===== -->
+        <div id="depositsTab" class="tab-content">
+            <div class="card">
+                <h3>💰 Pending Deposits <span class="count" id="depositCount">0</span></h3>
+                <div class="scrollable" id="depositList">
                     <div class="loading">Loading...</div>
                 </div>
             </div>
         </div>
         
-        <!-- Withdraws -->
+        <!-- ===== WITHDRAWS TAB ===== -->
         <div id="withdrawsTab" class="tab-content">
             <div class="card">
-                <h3>Pending Withdrawals <span class="count" id="withdrawCount">0</span></h3>
-                <div id="withdrawList">
+                <h3>💸 Pending Withdrawals <span class="count" id="withdrawCount">0</span></h3>
+                <div class="scrollable" id="withdrawList">
                     <div class="loading">Loading...</div>
                 </div>
             </div>
         </div>
         
-        <!-- Users -->
+        <!-- ===== USERS TAB ===== -->
         <div id="usersTab" class="tab-content">
             <div class="card">
-                <h3>All Users <span class="count" id="userCount">0</span></h3>
-                <div id="userList">
+                <h3>👥 All Users <span class="count" id="userCount">0</span></h3>
+                <div class="scrollable" id="userList">
                     <div class="loading">Loading...</div>
                 </div>
             </div>
@@ -454,9 +441,21 @@
     </div>
 </div>
 
+<!-- ===== MODAL ===== -->
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal-content">
+        <h3 id="modalTitle">Action</h3>
+        <div id="modalBody"></div>
+        <div class="modal-actions">
+            <button class="cancel" onclick="closeModal()">Cancel</button>
+            <button class="save" id="modalSaveBtn" onclick="modalSave()">Save</button>
+        </div>
+    </div>
+</div>
+
 <script>
 // ============================================================
-// 🔥 FIREBASE CONFIG - Already Connected
+// 🔥 FIREBASE CONFIG
 // ============================================================
 const firebaseConfig = {
     apiKey: "AIzaSyCYtL-DqPjiUdQn6s8Mp49CEQLVqNh_aaY",
@@ -468,7 +467,6 @@ const firebaseConfig = {
     appId: "1:14714045042:web:e1d95d8fdaff21606378eb"
 };
 
-// Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
@@ -477,7 +475,9 @@ const rtdb = firebase.database();
 // ============================================================
 // 🧠 STATE
 // ============================================================
+let modalCallback = null;
 let currentUpi = 'pay.silvergold@ybl';
+let betsUnsubscribe = null;
 let depositsUnsubscribe = null;
 let withdrawsUnsubscribe = null;
 let usersUnsubscribe = null;
@@ -502,25 +502,17 @@ function adminLogin() {
             return db.collection('users').doc(userCredential.user.uid).get();
         })
         .then(snap => {
-            if (snap.exists) {
-                const data = snap.data();
-                console.log('User Data:', data);
-                
-                if (data.role === 'admin') {
-                    document.getElementById('loginScreen').style.display = 'none';
-                    document.getElementById('dashboardScreen').style.display = 'block';
-                    loadAdminData();
-                } else {
-                    document.getElementById('loginError').textContent = '⛔ You are not an admin. Role: ' + (data.role || 'none');
-                    auth.signOut();
-                }
+            if (snap.exists && snap.data().role === 'admin') {
+                document.getElementById('loginScreen').style.display = 'none';
+                document.getElementById('dashboardScreen').style.display = 'block';
+                loadAdminData();
             } else {
-                document.getElementById('loginError').textContent = '⛔ User document not found in Firestore';
+                errorEl.textContent = '⛔ You are not an admin';
                 auth.signOut();
             }
         })
         .catch(err => {
-            document.getElementById('loginError').textContent = '❌ ' + err.message;
+            errorEl.textContent = '❌ ' + err.message;
         });
 }
 
@@ -528,19 +520,15 @@ function adminLogin() {
 // 🚀 LOAD ADMIN DATA
 // ============================================================
 function loadAdminData() {
-    // Load UPI
+    // UPI
     rtdb.ref('system/config/merchantUpi').on('value', snap => {
         currentUpi = snap.val() || 'pay.silvergold@ybl';
         document.getElementById('currentUpi').textContent = currentUpi;
     });
     
-    // Load Deposits
+    loadLiveBets();
     loadDeposits();
-    
-    // Load Withdraws
     loadWithdraws();
-    
-    // Load Users
     loadUsers();
 }
 
@@ -553,16 +541,88 @@ function updateUPI() {
         alert('Please enter a valid UPI ID');
         return;
     }
-    
     if (!confirm(`Change UPI from "${currentUpi}" to "${newUpi}"?`)) return;
     
     rtdb.ref('system/config/merchantUpi').set(newUpi)
         .then(() => {
-            alert('✅ UPI updated successfully!');
+            alert('✅ UPI updated!');
             document.getElementById('upiInput').value = '';
-            currentUpi = newUpi;
         })
         .catch(err => alert('❌ Error: ' + err.message));
+}
+
+// ============================================================
+// 🎯 LIVE BETS - REAL TIME
+// ============================================================
+function loadLiveBets() {
+    if (betsUnsubscribe) betsUnsubscribe();
+    
+    betsUnsubscribe = rtdb.ref('bets').on('value', snapshot => {
+        const container = document.getElementById('betList');
+        const countEl = document.getElementById('betCount');
+        
+        if (!snapshot.exists()) {
+            container.innerHTML = '<div class="empty">No live bets</div>';
+            countEl.textContent = '0';
+            document.getElementById('statBets').textContent = '0';
+            return;
+        }
+        
+        let bets = [];
+        snapshot.forEach(child => {
+            const data = child.val();
+            bets.push({ id: child.key, ...data });
+        });
+        
+        // Sort by timestamp (newest first)
+        bets.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+        
+        const activeBets = bets.filter(b => b.status === 'ACTIVE');
+        countEl.textContent = activeBets.length;
+        document.getElementById('statBets').textContent = activeBets.length;
+        
+        if (activeBets.length === 0) {
+            container.innerHTML = '<div class="empty">No active bets</div>';
+            return;
+        }
+        
+        let html = '';
+        activeBets.forEach(bet => {
+            const date = new Date(bet.timestamp).toLocaleTimeString('en-IN');
+            const choice = bet.choice || 'N/A';
+            const isGold = choice === 'Gold';
+            
+            html += `
+                <div class="list-item">
+                    <div class="info">
+                        <div class="name">👤 ${bet.username || bet.email || 'User'}</div>
+                        <div class="detail">₹${bet.betAmount} • <span class="bet-choice ${isGold ? 'gold' : 'silver'}">${choice}</span></div>
+                        <div class="small">${date}</div>
+                    </div>
+                    <div class="actions">
+                        <button class="gold" onclick="forceOutcome('${bet.id}', 'Gold')">🟡 GOLD</button>
+                        <button class="silver" onclick="forceOutcome('${bet.id}', 'Silver')">⚪ SILVER</button>
+                    </div>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+    });
+}
+
+function forceOutcome(betId, outcome) {
+    if (!confirm(`Force "${outcome}" as winner for this bet?`)) return;
+    
+    rtdb.ref('bets/' + betId).update({
+        status: 'COMPLETED',
+        outcome: outcome,
+        forcedBy: 'admin',
+        resolvedAt: Date.now()
+    }).then(() => {
+        alert(`✅ ${outcome} forced as winner!`);
+    }).catch(err => {
+        alert('❌ Error: ' + err.message);
+    });
 }
 
 // ============================================================
@@ -577,9 +637,8 @@ function loadDeposits() {
         .orderBy('timestamp', 'desc')
         .onSnapshot(snapshot => {
             const container = document.getElementById('depositList');
-            const countEl = document.getElementById('depositCount');
             const count = snapshot.size;
-            countEl.textContent = count;
+            document.getElementById('depositCount').textContent = count;
             document.getElementById('statDeposits').textContent = count;
             
             if (snapshot.empty) {
@@ -594,13 +653,13 @@ function loadDeposits() {
                 html += `
                     <div class="list-item">
                         <div class="info">
-                            <div class="name">₹${data.amount}</div>
+                            <div class="name">💰 ₹${data.amount}</div>
                             <div class="detail">${data.email} • ${date}</div>
-                            <div class="detail">UTR: ${data.utr || 'N/A'}</div>
+                            <div class="small">UTR: ${data.utr || 'N/A'}</div>
                         </div>
                         <div class="actions">
-                            <button class="approve" onclick="approveDeposit('${doc.id}')">✅ Approve</button>
-                            <button class="reject" onclick="rejectDeposit('${doc.id}')">❌ Reject</button>
+                            <button class="approve" onclick="approveDeposit('${doc.id}')">✅</button>
+                            <button class="reject" onclick="rejectDeposit('${doc.id}')">❌</button>
                         </div>
                     </div>
                 `;
@@ -624,20 +683,17 @@ function approveDeposit(docId) {
                 });
             });
         }
-    }).then(() => {
-        alert('✅ Deposit approved!');
-    }).catch(err => alert('❌ Error: ' + err.message));
+    }).then(() => alert('✅ Deposit approved!'))
+      .catch(err => alert('❌ Error: ' + err.message));
 }
 
 function rejectDeposit(docId) {
     if (!confirm('Reject this deposit?')) return;
-    
     db.collection('transactions').doc(docId).update({
         status: 'rejected',
         processedAt: Date.now()
-    }).then(() => {
-        alert('❌ Deposit rejected.');
-    }).catch(err => alert('❌ Error: ' + err.message));
+    }).then(() => alert('❌ Deposit rejected.'))
+      .catch(err => alert('❌ Error: ' + err.message));
 }
 
 // ============================================================
@@ -652,10 +708,8 @@ function loadWithdraws() {
         .orderBy('timestamp', 'desc')
         .onSnapshot(snapshot => {
             const container = document.getElementById('withdrawList');
-            const countEl = document.getElementById('withdrawCount');
             const count = snapshot.size;
-            countEl.textContent = count;
-            document.getElementById('statWithdraws').textContent = count;
+            document.getElementById('withdrawCount').textContent = count;
             
             if (snapshot.empty) {
                 container.innerHTML = '<div class="empty">No pending withdrawals</div>';
@@ -671,11 +725,11 @@ function loadWithdraws() {
                         <div class="info">
                             <div class="name">💸 ₹${data.amount}</div>
                             <div class="detail">${data.email} • ${date}</div>
-                            <div class="detail">UPI: ${data.upiId || 'N/A'}</div>
+                            <div class="small">UPI: ${data.upiId || 'N/A'}</div>
                         </div>
                         <div class="actions">
-                            <button class="approve" onclick="approveWithdraw('${doc.id}')">✅ Approve</button>
-                            <button class="reject" onclick="rejectWithdraw('${doc.id}')">❌ Reject</button>
+                            <button class="approve" onclick="approveWithdraw('${doc.id}')">✅</button>
+                            <button class="reject" onclick="rejectWithdraw('${doc.id}')">❌</button>
                         </div>
                     </div>
                 `;
@@ -686,17 +740,15 @@ function loadWithdraws() {
 
 function approveWithdraw(docId) {
     if (!confirm('Approve this withdrawal?')) return;
-    
     db.collection('transactions').doc(docId).update({
         status: 'approved',
         processedAt: Date.now()
-    }).then(() => {
-        alert('✅ Withdrawal approved!');
-    }).catch(err => alert('❌ Error: ' + err.message));
+    }).then(() => alert('✅ Withdrawal approved!'))
+      .catch(err => alert('❌ Error: ' + err.message));
 }
 
 function rejectWithdraw(docId) {
-    if (!confirm('Reject this withdrawal? Balance will be refunded.')) return;
+    if (!confirm('Reject this withdrawal? Balance refunded.')) return;
     
     db.collection('transactions').doc(docId).get().then(snap => {
         const data = snap.data();
@@ -710,13 +762,12 @@ function rejectWithdraw(docId) {
                 });
             });
         }
-    }).then(() => {
-        alert('❌ Withdrawal rejected. Balance refunded.');
-    }).catch(err => alert('❌ Error: ' + err.message));
+    }).then(() => alert('❌ Withdrawal rejected. Balance refunded.'))
+      .catch(err => alert('❌ Error: ' + err.message));
 }
 
 // ============================================================
-// 👥 USERS
+// 👥 USERS - FULL CONTROL
 // ============================================================
 function loadUsers() {
     if (usersUnsubscribe) usersUnsubscribe();
@@ -737,23 +788,78 @@ function loadUsers() {
             let html = '';
             snapshot.forEach(doc => {
                 const data = doc.data();
+                const isBanned = data.isBanned || false;
+                
                 html += `
                     <div class="list-item">
                         <div class="info">
                             <div class="name">👤 ${data.name || 'User'}</div>
-                            <div class="detail">${data.email} • ₹${data.balance || 0}</div>
-                            <div class="detail">Bets: ${data.totalBets || 0} • Won: ₹${data.totalWon || 0}</div>
+                            <div class="detail">${data.email}</div>
+                            <div class="small">Balance: ₹${data.balance || 0} • Bets: ${data.totalBets || 0}</div>
                         </div>
-                        <div>
-                            <span class="status ${data.isBanned ? 'rejected' : 'approved'}">
-                                ${data.isBanned ? '🚫 Banned' : '✅ Active'}
-                            </span>
+                        <div class="actions">
+                            <span class="status ${isBanned ? 'banned' : 'active'}">${isBanned ? '🚫 Banned' : '✅ Active'}</span>
+                            <button class="edit" onclick="editUserBalance('${doc.id}')">💰</button>
+                            ${isBanned ? 
+                                `<button class="unban" onclick="toggleUserBan('${doc.id}', false)">🔓</button>` :
+                                `<button class="ban" onclick="toggleUserBan('${doc.id}', true)">🔒</button>`
+                            }
                         </div>
                     </div>
                 `;
             });
             container.innerHTML = html;
         });
+}
+
+function editUserBalance(userId) {
+    showModal('💰 Edit Balance', `
+        <input type="number" id="balanceInput" placeholder="New Balance Amount" step="1">
+        <p style="font-size:11px; color:#9ca3af; margin-top:4px;">Enter new balance amount (will replace current balance)</p>
+    `, () => {
+        const amount = parseFloat(document.getElementById('balanceInput').value);
+        if (isNaN(amount) || amount < 0) {
+            alert('Please enter a valid positive number');
+            return;
+        }
+        
+        db.collection('users').doc(userId).update({
+            balance: amount
+        }).then(() => {
+            alert('✅ Balance updated successfully!');
+            closeModal();
+        }).catch(err => alert('❌ Error: ' + err.message));
+    });
+}
+
+function toggleUserBan(userId, ban) {
+    const action = ban ? 'ban' : 'unban';
+    if (!confirm(`${ban ? '🚫 Ban' : '🔓 Unban'} this user?`)) return;
+    
+    db.collection('users').doc(userId).update({
+        isBanned: ban
+    }).then(() => {
+        alert(`✅ User ${ban ? 'banned' : 'unbanned'} successfully!`);
+    }).catch(err => alert('❌ Error: ' + err.message));
+}
+
+// ============================================================
+// 📱 MODAL
+// ============================================================
+function showModal(title, bodyHtml, callback) {
+    document.getElementById('modalTitle').textContent = title;
+    document.getElementById('modalBody').innerHTML = bodyHtml;
+    document.getElementById('modalOverlay').classList.add('show');
+    modalCallback = callback;
+}
+
+function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('show');
+    modalCallback = null;
+}
+
+function modalSave() {
+    if (modalCallback) modalCallback();
 }
 
 // ============================================================
@@ -763,24 +869,25 @@ function switchTab(tab) {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
     
-    if (tab === 'deposits') {
-        document.querySelectorAll('.tab-btn')[0].classList.add('active');
-        document.getElementById('depositsTab').classList.add('active');
-    } else if (tab === 'withdraws') {
-        document.querySelectorAll('.tab-btn')[1].classList.add('active');
-        document.getElementById('withdrawsTab').classList.add('active');
-    } else if (tab === 'users') {
-        document.querySelectorAll('.tab-btn')[2].classList.add('active');
-        document.getElementById('usersTab').classList.add('active');
-    }
+    const tabMap = {
+        'livebets': 0,
+        'deposits': 1,
+        'withdraws': 2,
+        'users': 3
+    };
+    
+    const idx = tabMap[tab] || 0;
+    document.querySelectorAll('.tab-btn')[idx].classList.add('active');
+    document.getElementById(tab + 'Tab').classList.add('active');
 }
 
 // ============================================================
 // 🚪 LOGOUT
 // ============================================================
 function logoutAdmin() {
-    if (!confirm('Are you sure you want to logout?')) return;
+    if (!confirm('Logout?')) return;
     
+    if (betsUnsubscribe) betsUnsubscribe();
     if (depositsUnsubscribe) depositsUnsubscribe();
     if (withdrawsUnsubscribe) withdrawsUnsubscribe();
     if (usersUnsubscribe) usersUnsubscribe();
@@ -809,9 +916,7 @@ auth.onAuthStateChanged(user => {
     }
 });
 
-// ============================================================
-// 🔴 Enter Key Support
-// ============================================================
+// Enter key support
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('adminEmail').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') adminLogin();
@@ -821,8 +926,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-console.log('⚙️ Admin Panel V2 loaded.');
-console.log('🔥 Firebase connected successfully!');
+console.log('⚙️ Advanced Admin Panel loaded!');
 </script>
 </body>
 </html>
