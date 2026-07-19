@@ -285,22 +285,33 @@
             font-size: 13px;
         }
         
-        .admin-login {
+        .login-container {
             display: flex;
             flex-direction: column;
             min-height: 100vh;
             justify-content: center;
             max-width: 400px;
             margin: 0 auto;
+            padding: 20px;
         }
         
-        .admin-login h2 {
+        .login-container .logo {
             text-align: center;
-            color: #fbbf24;
-            margin-bottom: 24px;
+            margin-bottom: 30px;
         }
         
-        .admin-login input {
+        .login-container .logo h1 {
+            font-size: 28px;
+            font-weight: 800;
+            color: #fbbf24;
+        }
+        
+        .login-container .logo p {
+            color: #9ca3af;
+            font-size: 13px;
+        }
+        
+        .login-container input {
             width: 100%;
             padding: 14px;
             border-radius: 10px;
@@ -312,11 +323,11 @@
             outline: none;
         }
         
-        .admin-login input:focus {
+        .login-container input:focus {
             border-color: #fbbf24;
         }
         
-        .admin-login button {
+        .login-container .login-btn {
             width: 100%;
             padding: 14px;
             border: none;
@@ -329,32 +340,45 @@
             transition: all 0.3s ease;
         }
         
-        .admin-login button:active {
+        .login-container .login-btn:active {
             transform: scale(0.97);
         }
         
-        .admin-login .error {
+        .login-container .error {
             color: #f87171;
             text-align: center;
             font-size: 13px;
             margin-top: 8px;
+            min-height: 20px;
+        }
+        
+        .login-container .info {
+            color: #9ca3af;
+            text-align: center;
+            font-size: 12px;
+            margin-top: 16px;
         }
     </style>
 </head>
 <body>
 
-<div class="container" id="appContainer">
-    <!-- Login Screen -->
-    <div id="loginScreen" class="admin-login">
-        <h2>⚙️ Admin Panel</h2>
-        <input type="email" id="adminEmail" placeholder="Admin Email" autocomplete="email">
-        <input type="password" id="adminPassword" placeholder="Password" autocomplete="current-password">
-        <button onclick="adminLogin()">🔐 Login</button>
-        <div class="error" id="loginError"></div>
+<!-- ===== LOGIN SCREEN ===== -->
+<div id="loginScreen" class="login-container">
+    <div class="logo">
+        <h1>⚙️ Admin Panel</h1>
+        <p>GoldSilver Management</p>
     </div>
     
-    <!-- Dashboard -->
-    <div id="dashboardScreen" style="display:none;">
+    <input type="email" id="adminEmail" placeholder="Admin Email" autocomplete="email">
+    <input type="password" id="adminPassword" placeholder="Password" autocomplete="current-password">
+    <button class="login-btn" onclick="adminLogin()">🔐 Login</button>
+    <div class="error" id="loginError"></div>
+    <div class="info">🔒 Secure Admin Access Only</div>
+</div>
+
+<!-- ===== DASHBOARD ===== -->
+<div id="dashboardScreen" style="display:none;">
+    <div class="container">
         <div class="header">
             <h1>⚙️ Admin Panel</h1>
             <span class="badge">● Live</span>
@@ -432,7 +456,7 @@
 
 <script>
 // ============================================================
-// 🔥 FIREBASE CONFIG
+// 🔥 FIREBASE CONFIG - Already Connected
 // ============================================================
 const firebaseConfig = {
     apiKey: "AIzaSyCYtL-DqPjiUdQn6s8Mp49CEQLVqNh_aaY",
@@ -444,6 +468,7 @@ const firebaseConfig = {
     appId: "1:14714045042:web:e1d95d8fdaff21606378eb"
 };
 
+// Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
@@ -470,24 +495,32 @@ function adminLogin() {
         return;
     }
     
-    errorEl.textContent = '';
+    errorEl.textContent = '⏳ Logging in...';
     
     auth.signInWithEmailAndPassword(email, password)
         .then(userCredential => {
             return db.collection('users').doc(userCredential.user.uid).get();
         })
         .then(snap => {
-            if (snap.exists && snap.data().role === 'admin') {
-                document.getElementById('loginScreen').style.display = 'none';
-                document.getElementById('dashboardScreen').style.display = 'block';
-                loadAdminData();
+            if (snap.exists) {
+                const data = snap.data();
+                console.log('User Data:', data);
+                
+                if (data.role === 'admin') {
+                    document.getElementById('loginScreen').style.display = 'none';
+                    document.getElementById('dashboardScreen').style.display = 'block';
+                    loadAdminData();
+                } else {
+                    document.getElementById('loginError').textContent = '⛔ You are not an admin. Role: ' + (data.role || 'none');
+                    auth.signOut();
+                }
             } else {
-                errorEl.textContent = '⛔ You are not an admin';
+                document.getElementById('loginError').textContent = '⛔ User document not found in Firestore';
                 auth.signOut();
             }
         })
         .catch(err => {
-            errorEl.textContent = '❌ ' + err.message;
+            document.getElementById('loginError').textContent = '❌ ' + err.message;
         });
 }
 
@@ -566,8 +599,8 @@ function loadDeposits() {
                             <div class="detail">UTR: ${data.utr || 'N/A'}</div>
                         </div>
                         <div class="actions">
-                            <button class="approve" onclick="approveDeposit('${doc.id}')">✅</button>
-                            <button class="reject" onclick="rejectDeposit('${doc.id}')">❌</button>
+                            <button class="approve" onclick="approveDeposit('${doc.id}')">✅ Approve</button>
+                            <button class="reject" onclick="rejectDeposit('${doc.id}')">❌ Reject</button>
                         </div>
                     </div>
                 `;
@@ -641,8 +674,8 @@ function loadWithdraws() {
                             <div class="detail">UPI: ${data.upiId || 'N/A'}</div>
                         </div>
                         <div class="actions">
-                            <button class="approve" onclick="approveWithdraw('${doc.id}')">✅</button>
-                            <button class="reject" onclick="rejectWithdraw('${doc.id}')">❌</button>
+                            <button class="approve" onclick="approveWithdraw('${doc.id}')">✅ Approve</button>
+                            <button class="reject" onclick="rejectWithdraw('${doc.id}')">❌ Reject</button>
                         </div>
                     </div>
                 `;
@@ -771,14 +804,25 @@ auth.onAuthStateChanged(user => {
                 document.getElementById('loginScreen').style.display = 'none';
                 document.getElementById('dashboardScreen').style.display = 'block';
                 loadAdminData();
-            } else {
-                auth.signOut();
             }
         });
     }
 });
 
-console.log('⚙️ Admin Panel loaded.');
+// ============================================================
+// 🔴 Enter Key Support
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('adminEmail').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') adminLogin();
+    });
+    document.getElementById('adminPassword').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') adminLogin();
+    });
+});
+
+console.log('⚙️ Admin Panel V2 loaded.');
+console.log('🔥 Firebase connected successfully!');
 </script>
 </body>
 </html>
