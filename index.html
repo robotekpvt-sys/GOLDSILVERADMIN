@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>⚙️ Admin Panel</title>
+    <title>⚙️ Admin Panel - GoldSilver</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
@@ -39,7 +39,21 @@
             margin-bottom: 14px;
             border: 1px solid rgba(255,255,255,0.06);
         }
-        .card h3 { color: #fbbf24; font-size: 14px; margin-bottom: 10px; }
+        .card h3 {
+            color: #fbbf24;
+            font-size: 14px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .card h3 .count {
+            background: rgba(251, 191, 36, 0.15);
+            color: #fbbf24;
+            padding: 2px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
         
         .stats-grid {
             display: grid;
@@ -70,6 +84,7 @@
             font-size: 12px;
             font-weight: 600;
             cursor: pointer;
+            transition: all 0.3s ease;
         }
         .tab-btn.active {
             background: #fbbf24;
@@ -102,7 +117,9 @@
             font-size: 10px;
             font-weight: 600;
             cursor: pointer;
+            transition: all 0.3s ease;
         }
+        .list-item .actions button:active { transform: scale(0.95); }
         .list-item .actions .approve { background: #34d399; color: #000; }
         .list-item .actions .reject { background: #f87171; color: #fff; }
         .list-item .actions .gold { background: #fbbf24; color: #000; }
@@ -275,6 +292,17 @@
         }
         .modal-actions .save { background: #fbbf24; color: #1a1200; }
         .modal-actions .cancel { background: rgba(255,255,255,0.05); color: #9ca3af; }
+        
+        .refresh-btn {
+            padding: 6px 14px;
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 8px;
+            background: rgba(255,255,255,0.03);
+            color: #9ca3af;
+            font-size: 11px;
+            cursor: pointer;
+        }
+        .refresh-btn:active { transform: scale(0.95); }
     </style>
 </head>
 <body>
@@ -322,25 +350,35 @@
             <h3>📱 UPI Settings</h3>
             <div class="upi-display" id="currentUpi">Loading...</div>
             <div class="upi-input-group">
-                <input type="text" id="upiInput" placeholder="New UPI ID">
+                <input type="text" id="upiInput" placeholder="New UPI ID (e.g., business@paytm)">
                 <button onclick="updateUPI()">Update</button>
             </div>
         </div>
         
         <!-- Tabs -->
         <div class="tabs">
-            <button class="tab-btn active" onclick="switchTab('bets')">🎯 Bets</button>
+            <button class="tab-btn active" onclick="switchTab('users')">👥 Users</button>
+            <button class="tab-btn" onclick="switchTab('bets')">🎯 Bets</button>
             <button class="tab-btn" onclick="switchTab('deposits')">💰 Deposits</button>
             <button class="tab-btn" onclick="switchTab('withdraws')">💸 Withdraws</button>
-            <button class="tab-btn" onclick="switchTab('users')">👥 Users</button>
+        </div>
+        
+        <!-- Users Tab -->
+        <div id="usersTab" class="tab-content active">
+            <div class="card">
+                <h3>👥 All Users <span class="count" id="userCount">0</span></h3>
+                <div class="scrollable" id="userList">
+                    <div class="loading">Loading users...</div>
+                </div>
+            </div>
         </div>
         
         <!-- Bets Tab -->
-        <div id="betsTab" class="tab-content active">
+        <div id="betsTab" class="tab-content">
             <div class="card">
                 <h3>🎯 Live Bets <span class="count" id="betCount">0</span></h3>
                 <div class="scrollable" id="betList">
-                    <div class="loading">Loading...</div>
+                    <div class="loading">Loading bets...</div>
                 </div>
             </div>
         </div>
@@ -350,7 +388,7 @@
             <div class="card">
                 <h3>💰 Pending Deposits <span class="count" id="depositCount">0</span></h3>
                 <div class="scrollable" id="depositList">
-                    <div class="loading">Loading...</div>
+                    <div class="loading">Loading deposits...</div>
                 </div>
             </div>
         </div>
@@ -360,17 +398,7 @@
             <div class="card">
                 <h3>💸 Pending Withdrawals <span class="count" id="withdrawCount">0</span></h3>
                 <div class="scrollable" id="withdrawList">
-                    <div class="loading">Loading...</div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Users Tab -->
-        <div id="usersTab" class="tab-content">
-            <div class="card">
-                <h3>👥 All Users <span class="count" id="userCount">0</span></h3>
-                <div class="scrollable" id="userList">
-                    <div class="loading">Loading...</div>
+                    <div class="loading">Loading withdrawals...</div>
                 </div>
             </div>
         </div>
@@ -415,6 +443,10 @@ const rtdb = firebase.database();
 // ============================================================
 let modalCallback = null;
 let currentUpi = 'pay.silvergold@ybl';
+let usersUnsubscribe = null;
+let betsUnsubscribe = null;
+let depositsUnsubscribe = null;
+let withdrawsUnsubscribe = null;
 
 // ============================================================
 // ADMIN LOGIN
@@ -460,15 +492,25 @@ function loadAllData() {
         document.getElementById('currentUpi').textContent = currentUpi;
     });
     
-    // USERS
-    db.collection('users').onSnapshot(snapshot => {
+    // ============================================================
+    // USERS - Firestore se
+    // ============================================================
+    if (usersUnsubscribe) usersUnsubscribe();
+    usersUnsubscribe = db.collection('users').onSnapshot(snapshot => {
+        const container = document.getElementById('userList');
         const count = snapshot.size;
+        
         document.getElementById('statUsers').textContent = count;
         document.getElementById('userCount').textContent = count;
         
-        const container = document.getElementById('userList');
         if (snapshot.empty) {
-            container.innerHTML = '<div class="empty">No users found</div>';
+            container.innerHTML = `
+                <div class="empty">
+                    ❌ No users found in Firestore
+                    <br><br>
+                    <small style="color:#6b7c96;">Make sure users are saved to Firestore during signup</small>
+                </div>
+            `;
             return;
         }
         
@@ -476,12 +518,15 @@ function loadAllData() {
         snapshot.forEach(doc => {
             const data = doc.data();
             const isBanned = data.isBanned || false;
+            const balance = data.balance || 0;
+            const bets = data.totalBets || 0;
+            
             html += `
                 <div class="list-item">
                     <div class="info">
                         <div class="name">👤 ${data.name || 'User'}</div>
                         <div class="detail">${data.email}</div>
-                        <div class="small">Balance: ₹${data.balance || 0} • Bets: ${data.totalBets || 0}</div>
+                        <div class="small">💰 ₹${balance} • Bets: ${bets}</div>
                     </div>
                     <div class="actions">
                         <span class="status ${isBanned ? 'banned' : 'active'}">${isBanned ? '🚫' : '✅'}</span>
@@ -497,8 +542,11 @@ function loadAllData() {
         container.innerHTML = html;
     });
     
+    // ============================================================
     // BETS - Realtime Database se
-    rtdb.ref('bets').on('value', snapshot => {
+    // ============================================================
+    if (betsUnsubscribe) betsUnsubscribe();
+    betsUnsubscribe = rtdb.ref('bets').on('value', snapshot => {
         const container = document.getElementById('betList');
         const countEl = document.getElementById('betCount');
         
@@ -518,30 +566,38 @@ function loadAllData() {
         // Sort newest first
         bets.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
         
-        const activeBets = bets.filter(b => b.status === 'ACTIVE');
-        countEl.textContent = activeBets.length;
-        document.getElementById('statBets').textContent = activeBets.length;
+        // Show all bets (active + completed)
+        countEl.textContent = bets.length;
+        document.getElementById('statBets').textContent = bets.filter(b => b.status === 'ACTIVE').length;
         
-        if (activeBets.length === 0) {
-            container.innerHTML = '<div class="empty">No active bets</div>';
+        if (bets.length === 0) {
+            container.innerHTML = '<div class="empty">No bets found</div>';
             return;
         }
         
         let html = '';
-        activeBets.forEach(bet => {
-            const time = new Date(bet.timestamp).toLocaleTimeString('en-IN');
+        bets.forEach(bet => {
+            const time = new Date(bet.timestamp).toLocaleString('en-IN');
             const choice = bet.choice || 'N/A';
             const isGold = choice === 'Gold';
+            const status = bet.status || 'UNKNOWN';
+            const isActive = status === 'ACTIVE';
+            
             html += `
                 <div class="list-item">
                     <div class="info">
                         <div class="name">👤 ${bet.username || bet.email || 'User'}</div>
                         <div class="detail">₹${bet.betAmount} • <span class="bet-choice ${isGold ? 'gold' : 'silver'}">${choice}</span></div>
-                        <div class="small">${time}</div>
+                        <div class="small">${time} • Status: ${status}</div>
                     </div>
                     <div class="actions">
-                        <button class="gold" onclick="forceOutcome('${bet.id}', 'Gold')">🟡 Gold</button>
-                        <button class="silver" onclick="forceOutcome('${bet.id}', 'Silver')">⚪ Silver</button>
+                        ${isActive ? `
+                            <button class="gold" onclick="forceOutcome('${bet.id}', 'Gold')">🟡 Gold</button>
+                            <button class="silver" onclick="forceOutcome('${bet.id}', 'Silver')">⚪ Silver</button>
+                        ` : `
+                            <span class="status completed">✅ Done</span>
+                            ${bet.outcome ? `<span class="bet-choice ${bet.outcome === 'Gold' ? 'gold' : 'silver'}">${bet.outcome} Won</span>` : ''}
+                        `}
                     </div>
                 </div>
             `;
@@ -549,16 +605,20 @@ function loadAllData() {
         container.innerHTML = html;
     });
     
+    // ============================================================
     // DEPOSITS
-    db.collection('transactions')
+    // ============================================================
+    if (depositsUnsubscribe) depositsUnsubscribe();
+    depositsUnsubscribe = db.collection('transactions')
         .where('type', '==', 'DEPOSIT')
         .where('status', '==', 'pending')
         .onSnapshot(snapshot => {
+            const container = document.getElementById('depositList');
             const count = snapshot.size;
+            
             document.getElementById('depositCount').textContent = count;
             document.getElementById('statPending').textContent = count;
             
-            const container = document.getElementById('depositList');
             if (snapshot.empty) {
                 container.innerHTML = '<div class="empty">No pending deposits</div>';
                 return;
@@ -567,7 +627,7 @@ function loadAllData() {
             let html = '';
             snapshot.forEach(doc => {
                 const data = doc.data();
-                const date = new Date(data.timestamp).toLocaleDateString('en-IN');
+                const date = new Date(data.timestamp).toLocaleString('en-IN');
                 html += `
                     <div class="list-item">
                         <div class="info">
@@ -576,8 +636,8 @@ function loadAllData() {
                             <div class="small">${date} • UTR: ${data.utr || 'N/A'}</div>
                         </div>
                         <div class="actions">
-                            <button class="approve" onclick="approveDeposit('${doc.id}')">✅</button>
-                            <button class="reject" onclick="rejectDeposit('${doc.id}')">❌</button>
+                            <button class="approve" onclick="approveDeposit('${doc.id}')">✅ Approve</button>
+                            <button class="reject" onclick="rejectDeposit('${doc.id}')">❌ Reject</button>
                         </div>
                     </div>
                 `;
@@ -585,15 +645,19 @@ function loadAllData() {
             container.innerHTML = html;
         });
     
+    // ============================================================
     // WITHDRAWS
-    db.collection('transactions')
+    // ============================================================
+    if (withdrawsUnsubscribe) withdrawsUnsubscribe();
+    withdrawsUnsubscribe = db.collection('transactions')
         .where('type', '==', 'WITHDRAW')
         .where('status', '==', 'pending')
         .onSnapshot(snapshot => {
+            const container = document.getElementById('withdrawList');
             const count = snapshot.size;
+            
             document.getElementById('withdrawCount').textContent = count;
             
-            const container = document.getElementById('withdrawList');
             if (snapshot.empty) {
                 container.innerHTML = '<div class="empty">No pending withdrawals</div>';
                 return;
@@ -602,7 +666,7 @@ function loadAllData() {
             let html = '';
             snapshot.forEach(doc => {
                 const data = doc.data();
-                const date = new Date(data.timestamp).toLocaleDateString('en-IN');
+                const date = new Date(data.timestamp).toLocaleString('en-IN');
                 html += `
                     <div class="list-item">
                         <div class="info">
@@ -611,8 +675,8 @@ function loadAllData() {
                             <div class="small">${date} • UPI: ${data.upiId || 'N/A'}</div>
                         </div>
                         <div class="actions">
-                            <button class="approve" onclick="approveWithdraw('${doc.id}')">✅</button>
-                            <button class="reject" onclick="rejectWithdraw('${doc.id}')">❌</button>
+                            <button class="approve" onclick="approveWithdraw('${doc.id}')">✅ Approve</button>
+                            <button class="reject" onclick="rejectWithdraw('${doc.id}')">❌ Reject</button>
                         </div>
                     </div>
                 `;
@@ -625,7 +689,7 @@ function loadAllData() {
 // ACTIONS
 // ============================================================
 function forceOutcome(betId, outcome) {
-    if (!confirm(`Force "${outcome}" as winner?`)) return;
+    if (!confirm(`Force "${outcome}" as winner for this bet?`)) return;
     
     rtdb.ref('bets/' + betId).update({
         status: 'COMPLETED',
@@ -638,7 +702,7 @@ function forceOutcome(betId, outcome) {
 }
 
 function approveDeposit(docId) {
-    if (!confirm('Approve this deposit?')) return;
+    if (!confirm('Approve this deposit? (Balance will be credited)')) return;
     
     db.collection('transactions').doc(docId).get().then(snap => {
         const data = snap.data();
@@ -652,8 +716,13 @@ function approveDeposit(docId) {
                 });
             });
         }
-    }).then(() => alert('✅ Deposit approved!'))
-      .catch(err => alert('❌ Error: ' + err.message));
+        return db.collection('transactions').doc(docId).update({
+            status: 'approved',
+            processedAt: Date.now()
+        });
+    }).then(() => {
+        alert('✅ Deposit approved! Balance credited.');
+    }).catch(err => alert('❌ Error: ' + err.message));
 }
 
 function rejectDeposit(docId) {
@@ -661,8 +730,9 @@ function rejectDeposit(docId) {
     db.collection('transactions').doc(docId).update({
         status: 'rejected',
         processedAt: Date.now()
-    }).then(() => alert('❌ Deposit rejected.'))
-      .catch(err => alert('❌ Error: ' + err.message));
+    }).then(() => {
+        alert('❌ Deposit rejected.');
+    }).catch(err => alert('❌ Error: ' + err.message));
 }
 
 function approveWithdraw(docId) {
@@ -670,12 +740,13 @@ function approveWithdraw(docId) {
     db.collection('transactions').doc(docId).update({
         status: 'approved',
         processedAt: Date.now()
-    }).then(() => alert('✅ Withdrawal approved!'))
-      .catch(err => alert('❌ Error: ' + err.message));
+    }).then(() => {
+        alert('✅ Withdrawal approved!');
+    }).catch(err => alert('❌ Error: ' + err.message));
 }
 
 function rejectWithdraw(docId) {
-    if (!confirm('Reject this withdrawal? Balance refunded.')) return;
+    if (!confirm('Reject this withdrawal? Balance will be refunded.')) return;
     
     db.collection('transactions').doc(docId).get().then(snap => {
         const data = snap.data();
@@ -689,14 +760,19 @@ function rejectWithdraw(docId) {
                 });
             });
         }
-    }).then(() => alert('❌ Withdrawal rejected. Balance refunded.'))
-      .catch(err => alert('❌ Error: ' + err.message));
+        return db.collection('transactions').doc(docId).update({
+            status: 'rejected',
+            processedAt: Date.now()
+        });
+    }).then(() => {
+        alert('❌ Withdrawal rejected. Balance refunded.');
+    }).catch(err => alert('❌ Error: ' + err.message));
 }
 
 function editBalance(userId) {
     showModal('💰 Edit Balance', `
-        <input type="number" id="balanceInput" placeholder="New Balance" step="1">
-        <p style="font-size:11px; color:#9ca3af;">Enter new balance amount</p>
+        <input type="number" id="balanceInput" placeholder="New Balance Amount" step="1">
+        <p style="font-size:11px; color:#9ca3af;">Enter new balance amount (will replace current)</p>
     `, () => {
         const amount = parseFloat(document.getElementById('balanceInput').value);
         if (isNaN(amount) || amount < 0) {
@@ -704,32 +780,35 @@ function editBalance(userId) {
             return;
         }
         db.collection('users').doc(userId).update({ balance: amount })
-            .then(() => { alert('✅ Balance updated!'); closeModal(); })
+            .then(() => { 
+                alert('✅ Balance updated to ₹' + amount); 
+                closeModal(); 
+            })
             .catch(err => alert('❌ Error: ' + err.message));
     });
 }
 
 function toggleBan(userId, ban) {
-    const action = ban ? 'ban' : 'unban';
     if (!confirm(`${ban ? '🚫 Ban' : '🔓 Unban'} this user?`)) return;
     
     db.collection('users').doc(userId).update({ isBanned: ban })
-        .then(() => alert(`✅ User ${ban ? 'banned' : 'unbanned'}`))
+        .then(() => alert(`✅ User ${ban ? 'banned' : 'unbanned'} successfully`))
         .catch(err => alert('❌ Error: ' + err.message));
 }
 
 function updateUPI() {
     const newUpi = document.getElementById('upiInput').value.trim();
     if (!newUpi || !newUpi.includes('@')) {
-        alert('Please enter a valid UPI ID');
+        alert('Please enter a valid UPI ID (e.g., business@paytm)');
         return;
     }
-    if (!confirm(`Change UPI to "${newUpi}"?`)) return;
+    if (!confirm(`Change UPI from "${currentUpi}" to "${newUpi}"?`)) return;
     
     rtdb.ref('system/config/merchantUpi').set(newUpi)
         .then(() => {
-            alert('✅ UPI updated!');
+            alert('✅ UPI updated successfully!');
             document.getElementById('upiInput').value = '';
+            currentUpi = newUpi;
         })
         .catch(err => alert('❌ Error: ' + err.message));
 }
@@ -760,7 +839,7 @@ function switchTab(tab) {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
     
-    const tabs = ['bets', 'deposits', 'withdraws', 'users'];
+    const tabs = ['users', 'bets', 'deposits', 'withdraws'];
     const idx = tabs.indexOf(tab);
     if (idx !== -1) {
         document.querySelectorAll('.tab-btn')[idx].classList.add('active');
@@ -772,7 +851,13 @@ function switchTab(tab) {
 // LOGOUT
 // ============================================================
 function logoutAdmin() {
-    if (!confirm('Logout?')) return;
+    if (!confirm('Are you sure you want to logout?')) return;
+    
+    if (usersUnsubscribe) usersUnsubscribe();
+    if (betsUnsubscribe) betsUnsubscribe();
+    if (depositsUnsubscribe) depositsUnsubscribe();
+    if (withdrawsUnsubscribe) withdrawsUnsubscribe();
+    
     auth.signOut().then(() => {
         document.getElementById('dashboardScreen').style.display = 'none';
         document.getElementById('loginScreen').style.display = 'flex';
@@ -807,7 +892,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-console.log('✅ Admin Panel Loaded!');
+console.log('✅ Admin Panel Loaded Successfully!');
+console.log('🔥 Firebase Connected:', firebase.app().name);
+console.log('👤 Waiting for login...');
 </script>
 </body>
 </html>
