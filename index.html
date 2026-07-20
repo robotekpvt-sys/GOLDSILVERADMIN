@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>⚙️ Admin Panel - GoldSilver</title>
     
+    <!-- Firebase Compat SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
@@ -139,8 +140,7 @@
         .list-item .status.pending { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
         .list-item .status.completed { background: rgba(52, 211, 153, 0.15); color: #34d399; }
         
-        .empty { text-align: center; color: #9ca3af; padding: 20px; font-size: 13px; }
-        .loading { text-align: center; color: #9ca3af; padding: 20px; font-size: 13px; }
+        .empty, .loading { text-align: center; color: #9ca3af; padding: 20px; font-size: 13px; }
         
         .upi-display {
             background: rgba(251, 191, 36, 0.06);
@@ -153,10 +153,7 @@
             color: #fbbf24;
             margin-bottom: 10px;
         }
-        .upi-input-group {
-            display: flex;
-            gap: 8px;
-        }
+        .upi-input-group { display: flex; gap: 8px; }
         .upi-input-group input {
             flex: 1;
             padding: 10px 14px;
@@ -187,6 +184,7 @@
             color: #fff;
             font-weight: 600;
             cursor: pointer;
+            margin-top: 15px;
         }
         
         .login-container {
@@ -236,20 +234,14 @@
         .bet-choice.gold { background: rgba(251, 191, 36, 0.2); color: #fbbf24; }
         .bet-choice.silver { background: rgba(209, 213, 219, 0.2); color: #d1d5db; }
         
-        .scrollable {
-            max-height: 400px;
-            overflow-y: auto;
-        }
+        .scrollable { max-height: 400px; overflow-y: auto; }
         .scrollable::-webkit-scrollbar { width: 3px; }
         .scrollable::-webkit-scrollbar-thumb { background: #fbbf24; border-radius: 4px; }
         
         .modal-overlay {
             display: none;
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0,0,0,0.8);
             backdrop-filter: blur(10px);
             z-index: 1000;
@@ -278,10 +270,7 @@
             margin-bottom: 10px;
             outline: none;
         }
-        .modal-actions {
-            display: flex;
-            gap: 8px;
-        }
+        .modal-actions { display: flex; gap: 8px; }
         .modal-actions button {
             flex: 1;
             padding: 12px;
@@ -292,22 +281,11 @@
         }
         .modal-actions .save { background: #fbbf24; color: #1a1200; }
         .modal-actions .cancel { background: rgba(255,255,255,0.05); color: #9ca3af; }
-        
-        .refresh-btn {
-            padding: 6px 14px;
-            border: 1px solid rgba(255,255,255,0.06);
-            border-radius: 8px;
-            background: rgba(255,255,255,0.03);
-            color: #9ca3af;
-            font-size: 11px;
-            cursor: pointer;
-        }
-        .refresh-btn:active { transform: scale(0.95); }
     </style>
 </head>
 <body>
 
-<!-- ===== LOGIN ===== -->
+<!-- ===== LOGIN SCREEN ===== -->
 <div id="loginScreen" class="login-container">
     <div class="logo">
         <h1>⚙️ Admin Panel</h1>
@@ -319,7 +297,7 @@
     <div class="error" id="loginError"></div>
 </div>
 
-<!-- ===== DASHBOARD ===== -->
+<!-- ===== DASHBOARD SCREEN ===== -->
 <div id="dashboardScreen" style="display:none;">
     <div class="container">
         <div class="header">
@@ -439,7 +417,7 @@ const db = firebase.firestore();
 const rtdb = firebase.database();
 
 // ============================================================
-// STATE
+// STATE & UNSUB LISTENERS
 // ============================================================
 let modalCallback = null;
 let currentUpi = 'pay.silvergold@ybl';
@@ -447,6 +425,40 @@ let usersUnsubscribe = null;
 let betsUnsubscribe = null;
 let depositsUnsubscribe = null;
 let withdrawsUnsubscribe = null;
+
+// ऑटो लॉग-इन चेक
+auth.onAuthStateChanged(user => {
+    if (user) {
+        db.collection('users').doc(user.uid).get().then(snap => {
+            if (snap.exists && snap.data().role === 'admin') {
+                showDashboard();
+            } else {
+                auth.signOut();
+            }
+        }).catch(() => auth.signOut());
+    } else {
+        showLogin();
+    }
+});
+
+function showDashboard() {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('dashboardScreen').style.display = 'block';
+    loadAllData();
+}
+
+function showLogin() {
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('dashboardScreen').style.display = 'none';
+    stopAllListeners();
+}
+
+function stopAllListeners() {
+    if (usersUnsubscribe) usersUnsubscribe();
+    if (betsUnsubscribe) betsUnsubscribe();
+    if (depositsUnsubscribe) depositsUnsubscribe();
+    if (withdrawsUnsubscribe) withdrawsUnsubscribe();
+}
 
 // ============================================================
 // ADMIN LOGIN
@@ -469,11 +481,10 @@ function adminLogin() {
         })
         .then(snap => {
             if (snap.exists && snap.data().role === 'admin') {
-                document.getElementById('loginScreen').style.display = 'none';
-                document.getElementById('dashboardScreen').style.display = 'block';
-                loadAllData();
+                errorEl.textContent = '';
+                showDashboard();
             } else {
-                errorEl.textContent = '⛔ You are not an admin';
+                errorEl.textContent = '⛔ You are not authorized as admin';
                 auth.signOut();
             }
         })
@@ -483,18 +494,16 @@ function adminLogin() {
 }
 
 // ============================================================
-// LOAD ALL DATA
+// LOAD REALTIME DATA
 // ============================================================
 function loadAllData() {
-    // UPI
+    // UPI Sync
     rtdb.ref('system/config/merchantUpi').on('value', snap => {
         currentUpi = snap.val() || 'pay.silvergold@ybl';
         document.getElementById('currentUpi').textContent = currentUpi;
     });
     
-    // ============================================================
-    // USERS - Firestore se
-    // ============================================================
+    // 1. USERS LIST (Firestore)
     if (usersUnsubscribe) usersUnsubscribe();
     usersUnsubscribe = db.collection('users').onSnapshot(snapshot => {
         const container = document.getElementById('userList');
@@ -504,19 +513,15 @@ function loadAllData() {
         document.getElementById('userCount').textContent = count;
         
         if (snapshot.empty) {
-            container.innerHTML = `
-                <div class="empty">
-                    ❌ No users found in Firestore
-                    <br><br>
-                    <small style="color:#6b7c96;">Make sure users are saved to Firestore during signup</small>
-                </div>
-            `;
+            container.innerHTML = '<div class="empty">❌ No users found in Firestore</div>';
             return;
         }
         
         let html = '';
         snapshot.forEach(doc => {
             const data = doc.data();
+            if (data.role === 'admin') return; // एडमिन को लिस्ट में न दिखाएं
+            
             const isBanned = data.isBanned || false;
             const balance = data.balance || 0;
             const bets = data.totalBets || 0;
@@ -539,12 +544,10 @@ function loadAllData() {
                 </div>
             `;
         });
-        container.innerHTML = html;
-    });
+        container.innerHTML = html || '<div class="empty">No standard users found.</div>';
+    }, err => console.error("Firestore Error:", err));
     
-    // ============================================================
-    // BETS - Realtime Database se
-    // ============================================================
+    // 2. BETS LIST (Realtime Database)
     if (betsUnsubscribe) betsUnsubscribe();
     betsUnsubscribe = rtdb.ref('bets').on('value', snapshot => {
         const container = document.getElementById('betList');
@@ -559,21 +562,13 @@ function loadAllData() {
         
         let bets = [];
         snapshot.forEach(child => {
-            const data = child.val();
-            bets.push({ id: child.key, ...data });
+            bets.push({ id: child.key, ...child.val() });
         });
         
-        // Sort newest first
         bets.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
         
-        // Show all bets (active + completed)
         countEl.textContent = bets.length;
         document.getElementById('statBets').textContent = bets.filter(b => b.status === 'ACTIVE').length;
-        
-        if (bets.length === 0) {
-            container.innerHTML = '<div class="empty">No bets found</div>';
-            return;
-        }
         
         let html = '';
         bets.forEach(bet => {
@@ -605,9 +600,7 @@ function loadAllData() {
         container.innerHTML = html;
     });
     
-    // ============================================================
-    // DEPOSITS
-    // ============================================================
+    // 3. DEPOSITS (Firestore)
     if (depositsUnsubscribe) depositsUnsubscribe();
     depositsUnsubscribe = db.collection('transactions')
         .where('type', '==', 'DEPOSIT')
@@ -645,9 +638,7 @@ function loadAllData() {
             container.innerHTML = html;
         });
     
-    // ============================================================
-    // WITHDRAWS
-    // ============================================================
+    // 4. WITHDRAWS (Firestore)
     if (withdrawsUnsubscribe) withdrawsUnsubscribe();
     withdrawsUnsubscribe = db.collection('transactions')
         .where('type', '==', 'WITHDRAW')
@@ -686,7 +677,7 @@ function loadAllData() {
 }
 
 // ============================================================
-// ACTIONS
+// CORE ACTIONS
 // ============================================================
 function forceOutcome(betId, outcome) {
     if (!confirm(`Force "${outcome}" as winner for this bet?`)) return;
@@ -697,7 +688,7 @@ function forceOutcome(betId, outcome) {
         forcedBy: 'admin',
         resolvedAt: Date.now()
     }).then(() => {
-        alert('✅ ' + outcome + ' forced as winner!');
+        alert('✅ ' + outcome + ' forced successfully!');
     }).catch(err => alert('❌ Error: ' + err.message));
 }
 
@@ -707,19 +698,16 @@ function approveDeposit(docId) {
     db.collection('transactions').doc(docId).get().then(snap => {
         const data = snap.data();
         if (data && data.userId && data.amount) {
-            return db.collection('users').doc(data.userId).update({
-                balance: firebase.firestore.FieldValue.increment(data.amount)
-            }).then(() => {
-                return db.collection('transactions').doc(docId).update({
-                    status: 'approved',
-                    processedAt: Date.now()
-                });
-            });
+            const batch = db.batch();
+            const userRef = db.collection('users').doc(data.userId);
+            const txRef = db.collection('transactions').doc(docId);
+            
+            batch.update(userRef, { balance: firebase.firestore.FieldValue.increment(data.amount) });
+            batch.update(txRef, { status: 'approved', processedAt: Date.now() });
+            
+            return batch.commit();
         }
-        return db.collection('transactions').doc(docId).update({
-            status: 'approved',
-            processedAt: Date.now()
-        });
+        throw new Error("Invalid transaction data");
     }).then(() => {
         alert('✅ Deposit approved! Balance credited.');
     }).catch(err => alert('❌ Error: ' + err.message));
@@ -751,19 +739,16 @@ function rejectWithdraw(docId) {
     db.collection('transactions').doc(docId).get().then(snap => {
         const data = snap.data();
         if (data && data.userId && data.amount) {
-            return db.collection('users').doc(data.userId).update({
-                balance: firebase.firestore.FieldValue.increment(data.amount)
-            }).then(() => {
-                return db.collection('transactions').doc(docId).update({
-                    status: 'rejected',
-                    processedAt: Date.now()
-                });
-            });
+            const batch = db.batch();
+            const userRef = db.collection('users').doc(data.userId);
+            const txRef = db.collection('transactions').doc(docId);
+            
+            batch.update(userRef, { balance: firebase.firestore.FieldValue.increment(data.amount) });
+            batch.update(txRef, { status: 'rejected', processedAt: Date.now() });
+            
+            return batch.commit();
         }
-        return db.collection('transactions').doc(docId).update({
-            status: 'rejected',
-            processedAt: Date.now()
-        });
+        throw new Error("Invalid transaction data");
     }).then(() => {
         alert('❌ Withdrawal rejected. Balance refunded.');
     }).catch(err => alert('❌ Error: ' + err.message));
@@ -799,7 +784,7 @@ function toggleBan(userId, ban) {
 function updateUPI() {
     const newUpi = document.getElementById('upiInput').value.trim();
     if (!newUpi || !newUpi.includes('@')) {
-        alert('Please enter a valid UPI ID (e.g., business@paytm)');
+        alert('Please enter a valid UPI ID');
         return;
     }
     if (!confirm(`Change UPI from "${currentUpi}" to "${newUpi}"?`)) return;
@@ -808,13 +793,12 @@ function updateUPI() {
         .then(() => {
             alert('✅ UPI updated successfully!');
             document.getElementById('upiInput').value = '';
-            currentUpi = newUpi;
         })
         .catch(err => alert('❌ Error: ' + err.message));
 }
 
 // ============================================================
-// MODAL
+// UI WINDOWS & UTILS
 // ============================================================
 function showModal(title, bodyHtml, callback) {
     document.getElementById('modalTitle').textContent = title;
@@ -832,9 +816,6 @@ function modalSave() {
     if (modalCallback) modalCallback();
 }
 
-// ============================================================
-// TABS
-// ============================================================
 function switchTab(tab) {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
@@ -847,54 +828,11 @@ function switchTab(tab) {
     }
 }
 
-// ============================================================
-// LOGOUT
-// ============================================================
 function logoutAdmin() {
-    if (!confirm('Are you sure you want to logout?')) return;
-    
-    if (usersUnsubscribe) usersUnsubscribe();
-    if (betsUnsubscribe) betsUnsubscribe();
-    if (depositsUnsubscribe) depositsUnsubscribe();
-    if (withdrawsUnsubscribe) withdrawsUnsubscribe();
-    
-    auth.signOut().then(() => {
-        document.getElementById('dashboardScreen').style.display = 'none';
-        document.getElementById('loginScreen').style.display = 'flex';
-        document.getElementById('adminEmail').value = '';
-        document.getElementById('adminPassword').value = '';
-        document.getElementById('loginError').textContent = '';
-    });
-}
-
-// ============================================================
-// AUTH STATE
-// ============================================================
-auth.onAuthStateChanged(user => {
-    if (user) {
-        db.collection('users').doc(user.uid).get().then(snap => {
-            if (snap.exists && snap.data().role === 'admin') {
-                document.getElementById('loginScreen').style.display = 'none';
-                document.getElementById('dashboardScreen').style.display = 'block';
-                loadAllData();
-            }
-        });
+    if (confirm('Are you sure you want to logout?')) {
+        auth.signOut();
     }
-});
-
-// Enter key support
-document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('adminEmail').addEventListener('keypress', e => {
-        if (e.key === 'Enter') adminLogin();
-    });
-    document.getElementById('adminPassword').addEventListener('keypress', e => {
-        if (e.key === 'Enter') adminLogin();
-    });
-});
-
-console.log('✅ Admin Panel Loaded Successfully!');
-console.log('🔥 Firebase Connected:', firebase.app().name);
-console.log('👤 Waiting for login...');
+}
 </script>
 </body>
 </html>
